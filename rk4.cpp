@@ -19,14 +19,14 @@ Un(_Un)
   coeffsB[2] = 2.;
   coeffsB[3] = 1.;
 
-  fi = new DataStruct<T>[nSteps];
+  fi = new DataStruct<T>[2];  //dividimos fi para que tenga dimensión 2, variable menos pesada
 
   fi[0].setSize(Un.getSize());
   fi[1].setSize(Un.getSize());
-  fi[2].setSize(Un.getSize());
-  fi[3].setSize(Un.getSize());
+
 
   Ui.setSize(Un.getSize());
+  Ufinal.setSize(Un.getSize()); // Para almacenar f1 + 2*f2 + 2*f3 + f4
 };
 
 template<class T>
@@ -47,6 +47,12 @@ template<class T>
 void RungeKutta4<T>::initRK()
 {
   currentStep = 0;
+
+  // Inicializar Ufinal a cero
+    T* dataUfinal = Ufinal.getData();
+    for (int n = 0; n < Ufinal.getSize(); ++n) {
+        dataUfinal[n] = 0.;
+    }
 };
 
 template<class T>
@@ -66,7 +72,7 @@ void RungeKutta4<T>::stepUi(T dt)
   }
   else
   {
-    T *datafi = fi[currentStep-1].getData();
+    T *datafi = fi[(currentStep-1)%2].getData(); //corregido al tamaño del nuevo array
     T *dataUi = Ui.getData();
     const T *dataU  = Un.getData();
 
@@ -81,44 +87,30 @@ template<class T>
 void RungeKutta4<T>::finalizeRK(const T dt)
 {
   T *dataUn = Un.getData();
-  T *dataUi = Ui.getData();
-
-  // set Ui to 0
-  for(int n = 0; n < Ui.getSize(); n++)
-  {
-    dataUi[n] = 0.;
-  }
-  
-  for(int s = 0; s < nSteps; s++)
-  {
-    const T *dataFi = fi[s].getData();
-    const T b = coeffsB[s];
-
-    for(int n = 0; n < Ui.getSize(); n++)
-    {
-      dataUi[n] += b * dataFi[n];
-    }
-  }
+  const T* dataUfinal = Ufinal.getData(); //corregido
 
   const T oneDiv6 = 1. / 6.;
-  for(int n = 0; n < Ui.getSize(); n++)
-  {
-    dataUn[n] += dt * oneDiv6 * dataUi[n];
-  }
+    for (int n = 0; n < Un.getSize(); ++n)
+    {
+        dataUn[n] += dt * oneDiv6 * dataUfinal[n];
+    }
+    
 };
 
 template<class T>
 void RungeKutta4<T>::setFi(DataStruct<T> &_F)
 {
-  T *dataFi = fi[currentStep].getData();
-  const T *dataF  = _F.getData();
+    T* dataFi = fi[currentStep % 2].getData(); // Usando solo dos DataStruct
+    const T* dataF = _F.getData();
+    T* dataUfinal = Ufinal.getData();
 
-  for(int n = 0; n < Ui.getSize(); n++)
-  {
-    dataFi[n] = dataF[n];
-  }
+    for (int n = 0; n < Ui.getSize(); ++n)
+    {
+        dataFi[n] = dataF[n];
+        dataUfinal[n] += coeffsB[currentStep] * dataF[n];
+    }
 
-  currentStep++;
+    currentStep++;
 };
 
 template<class T>
