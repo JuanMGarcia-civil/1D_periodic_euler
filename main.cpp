@@ -23,10 +23,14 @@ FLOATTYPE calcL2norm(DataStruct<FLOATTYPE> &u, DataStruct<FLOATTYPE> &uinit);
 
 int main(int narg, char **argv)
 {
+  
+   int provided;
+    MPI_Init_thread(&narg, &argv, MPI_THREAD_FUNNELED, &provided); // Inicialización de MPI
+  
   int numPoints =  80;
   FLOATTYPE k = 2.; // wave number
 
-  if(narg != 3)
+  if(narg != 3) //nos dice que al ejecutar el programa hay que dar numero de puntos y numero ondas (en total tres argumentos)
   {
     std::cout<< "Wrong number of arguments. You should include:" << std::endl;
     std::cout<< "    Num points" << std::endl;
@@ -34,8 +38,8 @@ int main(int narg, char **argv)
     return 1;
   }else
   {
-    numPoints = std::stoi(argv[1]);
-    k         = std::stod(argv[2]);
+    numPoints = std::stoi(argv[1]);  // stoi string to integer
+    k         = std::stod(argv[2]);  // string to double
   }
 
   // solution data
@@ -71,7 +75,7 @@ int main(int narg, char **argv)
   // Output Initial Condition
   write2File(xj, u, "initialCondition.csv");
 
-  FLOATTYPE t_final = 1.;
+  FLOATTYPE t_final = 1.; 
   FLOATTYPE time = 0.;
   DataStruct<FLOATTYPE> Ui(u.getSize()); // temp. data
 
@@ -79,13 +83,14 @@ int main(int narg, char **argv)
   double compTime = MPI_Wtime();
 
   // main loop
-  while(time < t_final)
+  while(time < 1.) //quitada t_final, siempre es 1., optimiza ya que el compilador no evalua variable
   {
-    if(time+dt >= t_final) dt = t_final - time;
+    if(time+dt >= 1.) dt = 1. - time;
 
     // take RK step
     rk.initRK();
-    for(int s = 0; s < rk.getNumSteps(); s++)
+  
+    for(int s = 0; s < 4; s++) //quitada variable a leer del bucle
     {
       rk.stepUi(dt);
       Ui = *rk.currentU();
@@ -107,6 +112,8 @@ int main(int narg, char **argv)
   std::cout << " sec. Error: " << err/k;
   std::cout << " kdx: " << k*datax[1]*2.*M_PI;
   std::cout << std::endl;
+
+MPI_Finalize(); // Finalización de MPI
 
   return 0;
 }
